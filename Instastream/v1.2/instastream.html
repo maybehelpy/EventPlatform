@@ -1,0 +1,121 @@
+<html>
+<head>
+<!-- CSS -->
+<link rel="stylesheet" type="text/css" href="../instastream.css" />
+
+<!-- JS -->
+<script type="text/javascript" src="../../js/jquery.js"></script>
+<script type="text/javascript" src="../../js/scrollto.js"></script>
+<script type="text/javascript">
+
+  //HASHTAG = ["пятерочник", "пятерочники"];
+  HASHTAG = ["systemxles"];
+  PAGENAME = "media";
+  ALLPHOTOS = 0;
+  ALLLIKES = 0;
+  PREVIOUS_PHOTOS = 0; //нам нужно понимать, сколько фоток было ДО, чтобы правильно формировать страницы
+  ITERATION = 0;
+
+  function loadMedia(hash) {
+    $.ajax({
+      url: "http://advisor.eventplatform.ru/instagram/"+hash+".json" //чтобы функционал завёлся - необходимо создать данный файл на сервере
+      , type: "GET"
+      , crossDomain: true
+      , dataType: "json"
+      , success: function (d) {
+        if (d.length) {
+          PHOTOS = d.length;
+          ALLPHOTOS += d.length;
+        } else {
+          PHOTOS = 0;
+        }        
+        $("#counterPhotos").html(ALLPHOTOS); // количество фоток
+        for (a = 0; a < d.length; a++) { 
+          ALLLIKES += d[a].likes.count;
+        }
+        $("#counterLikes").html(ALLLIKES); // количество лайков
+
+        for (a = 0; a < PHOTOS; a++) { // выводим всееее фотки
+          if (PREVIOUS_PHOTOS===0 || PREVIOUS_PHOTOS%5 === 0 ) { //проверяем, не пора ли начать новую страницу
+            $(".instastream_pages").append("<span>"+(PREVIOUS_PHOTOS/5+1)+"</span>");
+            $("#instastream_box").append("<div class='page' rel='"+(PREVIOUS_PHOTOS/5+1)+"' style='display: none;'></div>");
+          }
+          PREVIOUS_PHOTOS++; 
+          $("#instastream_box .page:last-child")
+              .append("<div class='item_box'>\
+                        <div class='photo_box'>\
+                          <div class='photo_box_inner'>\
+                            <img src='" + d[a].images.low_resolution.url + "' />\
+                            <div class='author_box'>\
+                              <img src='"+d[a].user.profile_picture+"' /> \
+                              <span>\
+                                <b>" + d[a].user.full_name + "</b>\
+                                " + d[a].caption.text + "\
+                              </span>\
+                            </div>\
+                            <i>" + d[a].likes.count + "</i>\
+                          </div>\
+                        </div>\
+                        <div class='text_box'>\
+                          <span>" + d[a].caption.text + "</span>\
+                          <div class='author_box'><img src='"+d[a].user.profile_picture+"' /> " + d[a].user.full_name + "</b>\
+                        </div>\
+                      </div>");
+        }
+        ITERATION++;
+        if (ITERATION === HASHTAG.length) { //как только прошлись по всем хеш-тегам - выводим
+          $(".instastream_pages span:first-child").addClass("active"); // подсвечивается кнопка первой страницы
+          $("#instastream_box .page:first-child").css("display","block"); //показываем последние 5 фоток, активируем первую страницу
+        }
+      }
+    });
+  }
+
+  $(document).ready(function () {
+
+    hashtag_text_val = "";
+    for (a in HASHTAG) {
+      loadMedia(HASHTAG[a]);
+      hashtag_text_val += (0 == hashtag_text_val ? "" : ", ") + "#" + HASHTAG[a];
+    }
+    $("#hashtag_text").html(hashtag_text_val);
+
+    $(document).on("touchstart click", '.instagram', function (e) {
+      e.stopPropagation(); e.preventDefault();
+      setTimeout("window.location='instagram://camera';", 100);
+      return false;
+    });
+
+    $(document).on("touchstart click", '.instastream_pages span', function (e) {
+      e.stopPropagation(); e.preventDefault();
+      if (!$(this).hasClass("active")) {
+        $(".instastream_pages span").removeClass("active");
+        $(".instastream_pages span:nth-child(" + $(this).html() + ")").addClass("active");
+        $("#instastream_box .page").slideUp(700);
+        $("#instastream_box .page[rel='" + $(this).html() + "']").slideDown(700);
+        // $.scrollTo($("#instastream_box"),700, {offset: {top:$(".header").height(), left:0} });
+        $('html, body').animate({
+          scrollTop: $("#first").offset().top - $(".mini_header").height()
+        }, 500);
+      }
+    });
+
+
+  });
+</script>
+</head>
+
+<body>
+  
+  <h1>Instagram</h1>
+  <p>Сделайте фото с хэш-тегом <b id="hashtag_text"></b> и делитесь впечатлениями с остальными участниками!</p>
+  <p>Чтобы попасть в ленту убедитесь, что на Вашем мобильном устройстве есть приложение Instagram, и этот аккаунт не является приватным. Если вдруг приложения нет на вашем устройстве, просим Вас его <a href="http://instagram.com/" class="link">установить</a>.</p>
+  <center style="padding: 20px 0 0;"><b>Всего фотографий: <span id="counterPhotos" class="bold" style="font-family: Bold"></span>&nbsp;&nbsp;&nbsp;&nbsp; <nobr style="font-family: Bold">Лайков: <span id="counterLikes" class="bold" style="font-family: Bold"></span></nobr></b></center>
+  <center style="padding: 20px 0 30px;"><a href="instagram://camera" class="inputButton withicon instagram">Сделать фото!</a></center>
+  
+  <div class="instastream_pages"></div>
+  <div id="instastream_box"></div>
+  <div class="instastream_pages"></div>
+
+</body>
+</html>
